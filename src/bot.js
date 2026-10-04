@@ -4,6 +4,7 @@ const { buildSearchCaption, buildDetailCaption, escapeHtml } = require('./format
 const sessions = require('./session');
 const { layoutEpisodeButtons } = require('./episodes');
 const { downloadImage } = require('./images');
+const { buildKeywordVariants } = require('./search');
 
 const START_HINT = 'Gõ tên phim để tìm. Ví dụ: Hoa Thiên Cốt';
 
@@ -69,17 +70,26 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
     return;
   }
 
+  const variants = buildKeywordVariants(query);
   let data;
+  let usedQuery = query;
+
   try {
-    data = await api.searchFilms(query, page);
+    for (const variant of variants) {
+      data = await api.searchFilms(variant, page);
+      if (data?.status && data.status !== 'success') {
+        await ctx.reply('Nguồn phim trả về lỗi. Thử lại sau.');
+        return;
+      }
+      const found = Array.isArray(data?.items) ? data.items : [];
+      if (found.length > 0) {
+        usedQuery = variant;
+        break;
+      }
+    }
   } catch (error) {
     console.error('Lỗi tìm phim:', error.message);
     await ctx.reply('Không tìm được phim lúc này. Thử lại sau.');
-    return;
-  }
-
-  if (data?.status && data.status !== 'success') {
-    await ctx.reply('Nguồn phim trả về lỗi. Thử lại sau.');
     return;
   }
 
@@ -101,7 +111,7 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
     return;
   }
 
-  const sessionId = memory.rememberSearch(query, currentPage, items);
+  const sessionId = memory.rememberSearch(usedQuery, currentPage, items);
   for (let index = 0; index < items.length; index += 1) {
     const rows = [[
       Markup.button.callback('Xem chi tiết', memory.detailCallback(sessionId, index)),
