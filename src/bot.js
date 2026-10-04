@@ -3,8 +3,12 @@ const { searchFilms, getFilm } = require('./nguonc');
 const { buildSearchCaption, buildDetailCaption, escapeHtml } = require('./format');
 const sessions = require('./session');
 const { layoutEpisodeButtons } = require('./episodes');
-const { downloadImage } = require('./images');
 const { buildKeywordVariants } = require('./search');
+const {
+  resolveCardImage,
+  prefetchCardImages,
+  sendCardsInOrder,
+} = require('./cards');
 
 const START_HINT = 'Gõ tên phim để tìm. Ví dụ: Hoa Thiên Cốt';
 
@@ -112,15 +116,18 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
   }
 
   const sessionId = memory.rememberSearch(usedQuery, currentPage, items);
-  for (let index = 0; index < items.length; index += 1) {
+  const imagePromises = prefetchCardImages(items);
+  const lastIndex = items.length - 1;
+
+  await sendCardsInOrder(imagePromises, async (index, image) => {
     const rows = [[
       Markup.button.callback('Xem chi tiết', memory.detailCallback(sessionId, index)),
     ]];
-    if (totalPage > 1) {
+    if (totalPage > 1 && index === lastIndex) {
       rows.push(searchNavRow(memory, sessionId, currentPage, totalPage));
     }
-    await sendCard(ctx, items[index], buildSearchCaption(items[index]), rows);
-  }
+    await deliverCard(ctx, image, buildSearchCaption(items[index]), rows);
+  });
 }
 
 function searchNavRow(memory, sessionId, page, totalPage) {
@@ -239,19 +246,18 @@ async function present(ctx, movie, caption, rows, edit) {
   await sendCard(ctx, movie, caption, rows);
 }
 
-async function sendCard(ctx, item, caption, rows) {
+async function deliverCard(ctx, image, caption, rows) {
   const extra = { caption, parse_mode: 'HTML' };
   if (rows.length) {
     extra.reply_markup = Markup.inlineKeyboard(rows).reply_markup;
   }
 
-  const urls = [item?.poster_url, item?.thumb_url].filter(
-    (url, index, list) => url && list.indexOf(url) === index,
-  );
-  for (const url of urls) {
+  if (image?.source) {
     try {
-      const image = await downloadImage(url);
-      await ctx.replyWithPhoto({ source: image.source, filename: image.filename }, extra);
+      await ctx.replyWithPhoto(
+        { source: image.source, filename: image.filename },
+        extra,
+      );
       return;
     } catch (error) {
       console.error('Không gửi được ảnh:', error.message);
@@ -260,6 +266,11 @@ async function sendCard(ctx, item, caption, rows) {
 
   const { caption: text, ...rest } = extra;
   await ctx.reply(text, rest);
+}
+
+async function sendCard(ctx, item, caption, rows) {
+  const image = await resolveCardImage(item);
+  await deliverCard(ctx, image, caption, rows);
 }
 
 async function replaceKeyboard(ctx, rows) {
