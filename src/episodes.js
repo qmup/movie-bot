@@ -6,13 +6,27 @@ function trimLabel(text) {
   return value.length <= 32 ? value : `${value.slice(0, 31)}…`;
 }
 
+function isValidEmbed(embed) {
+  return typeof embed === 'string' && /^https?:\/\//i.test(embed.trim());
+}
+
+function episodeCell(episode, episodeIndex, { single = false } = {}) {
+  const embed = episode?.embed;
+  const url = isValidEmbed(embed) ? embed.trim() : null;
+  return {
+    label: single ? '▶️ Xem phim' : trimLabel(episode?.name || String(episodeIndex + 1)),
+    episodeIndex,
+    url,
+  };
+}
+
 function layoutEpisodeButtons(episodes, page) {
   const list = episodes || [];
   if (list.length === 1) {
     return {
       page: 0,
       totalPages: 1,
-      rows: [[{ label: 'Xem phim', episodeIndex: 0 }]],
+      rows: [[episodeCell(list[0], 0, { single: true })]],
     };
   }
 
@@ -24,10 +38,9 @@ function layoutEpisodeButtons(episodes, page) {
 
   for (let i = 0; i < slice.length; i += EPISODES_PER_ROW) {
     rows.push(
-      slice.slice(i, i + EPISODES_PER_ROW).map((episode, offset) => ({
-        label: trimLabel(episode.name || String(start + i + offset + 1)),
-        episodeIndex: start + i + offset,
-      })),
+      slice.slice(i, i + EPISODES_PER_ROW).map((episode, offset) => (
+        episodeCell(episode, start + i + offset)
+      )),
     );
   }
 
@@ -49,5 +62,6 @@ function layoutEpisodeButtons(episodes, page) {
 module.exports = {
   EPISODES_PER_PAGE,
   EPISODES_PER_ROW,
+  isValidEmbed,
   layoutEpisodeButtons,
 };

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const film = require('../fixtures/film-hoa-thien-cot.json');
-const { layoutEpisodeButtons } = require('../src/episodes');
+const { layoutEpisodeButtons, isValidEmbed } = require('../src/episodes');
 const {
   CALLBACK_MAX_BYTES,
   TTL_MS,
@@ -12,7 +12,6 @@ const {
   detailCallback,
   serverCallback,
   episodePageCallback,
-  watchCallback,
   parseCallback,
 } = require('../src/session');
 
@@ -39,29 +38,17 @@ test('callback_data chỉ là id phiên và chỉ số, không quá 64 byte', ()
     serverCallback(id, 0),
     episodePageCallback(id, 0, 0),
     episodePageCallback(id, 0, 2),
-    watchCallback(id, 0, 0),
-    watchCallback(id, 0, 49),
-    watchCallback(id, 12, 9999),
   ];
 
   for (const data of samples) assertShort(data);
 
-  session.servers.forEach((server, serverIndex) => {
-    server.episodes.forEach((episode, episodeIndex) => {
-      const data = watchCallback(id, serverIndex, episodeIndex);
-      assertShort(data);
-      assert.equal(data.includes(episode.embed), false);
-      const parsed = parseCallback(data);
-      assert.equal(parsed.type, 'watch');
-      assert.equal(parsed.id, id);
-      assert.equal(parsed.server, serverIndex);
-      assert.equal(parsed.episode, episodeIndex);
-      assert.equal(recall(parsed.id).servers[parsed.server].episodes[parsed.episode].embed, episode.embed);
-    });
-  });
-
+  assert.equal(parseCallback(searchPageCallback(id, 2)).type, 'search');
+  assert.equal(parseCallback(detailCallback(id, 1)).type, 'detail');
+  assert.equal(parseCallback(serverCallback(id, 0)).type, 'server');
+  assert.equal(parseCallback(episodePageCallback(id, 0, 1)).type, 'episodes');
+  assert.equal(parseCallback(`w:${id}:0:0`), null);
   assert.equal(parseCallback(`${'x'.repeat(65)}`), null);
-  assert.equal(watchCallback(id, 0, 49), `w:${id}:0:49`);
+  assert.equal(episodePageCallback(id, 0, 2), `e:${id}:0:2`);
 });
 
 test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một hàng, 20 tập một trang', () => {
@@ -82,14 +69,37 @@ test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một
   );
   assert.equal(first.rows[0][0].label, '1');
   assert.equal(first.rows[0][0].episodeIndex, 0);
+  assert.equal(first.rows[0][0].url, episodes[0].embed);
   assert.equal(first.rows[3][4].label, '20');
+  assert.equal(first.rows[3][4].url, episodes[19].embed);
   assert.equal(first.rows[4].at(-1).label, 'Trang sau »');
+  assert.equal('url' in first.rows[4].at(-1), false);
+  assert.equal('page' in first.rows[4].at(-1), true);
 
   const last = layoutEpisodeButtons(episodes, 2);
   assert.equal(last.rows[0][0].episodeIndex, 40);
+  assert.equal(last.rows[0][0].url, episodes[40].embed);
   assert.equal(last.rows[1][4].label, '50');
   assert.equal(last.rows.at(-1)[0].label, '« Trang trước');
 
   const single = layoutEpisodeButtons([{ name: 'FULL', embed: 'https://example.test/a' }], 0);
-  assert.deepEqual(single.rows, [[{ label: 'Xem phim', episodeIndex: 0 }]]);
+  assert.deepEqual(single.rows, [[{
+    label: '▶️ Xem phim',
+    episodeIndex: 0,
+    url: 'https://example.test/a',
+  }]]);
+
+  const broken = layoutEpisodeButtons([
+    { name: '1', embed: 'https://ok.test/1' },
+    { name: '2', embed: 'not-a-url' },
+    { name: '3', embed: '' },
+    { name: '4', embed: 'http://ok.test/4' },
+  ], 0);
+  assert.equal(broken.rows[0][0].url, 'https://ok.test/1');
+  assert.equal(broken.rows[0][1].url, null);
+  assert.equal(broken.rows[0][2].url, null);
+  assert.equal(broken.rows[0][3].url, 'http://ok.test/4');
+  assert.equal(isValidEmbed('https://x'), true);
+  assert.equal(isValidEmbed('ftp://x'), false);
+  assert.equal(isValidEmbed(null), false);
 });

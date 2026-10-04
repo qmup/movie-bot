@@ -101,10 +101,6 @@ function episodePageCallback(id, serverIndex, page) {
   return pack(['e', id, serverIndex, page]);
 }
 
-function watchCallback(id, serverIndex, episodeIndex) {
-  return pack(['w', id, serverIndex, episodeIndex]);
-}
-
 function parseCallback(data) {
   if (typeof data !== 'string' || Buffer.byteLength(data) > CALLBACK_MAX_BYTES) {
     return null;
@@ -129,9 +125,6 @@ function parseCallback(data) {
     case 'e':
       if (parts.length !== 4) return null;
       return { type: 'episodes', id, server: nums[0], page: nums[1] };
-    case 'w':
-      if (parts.length !== 4) return null;
-      return { type: 'watch', id, server: nums[0], episode: nums[1] };
     default:
       return null;
   }
@@ -149,6 +142,5 @@ module.exports = {
   detailCallback,
   serverCallback,
   episodePageCallback,
-  watchCallback,
   parseCallback,
 };

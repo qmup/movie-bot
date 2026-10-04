@@ -1,6 +1,6 @@
 const { Telegraf, Markup } = require('telegraf');
 const { searchFilms, getFilm } = require('./nguonc');
-const { buildSearchCaption, buildDetailCaption, escapeHtml } = require('./format');
+const { buildSearchCaption, buildDetailCaption } = require('./format');
 const sessions = require('./session');
 const { layoutEpisodeButtons } = require('./episodes');
 const { buildKeywordVariants } = require('./search');
@@ -208,18 +208,18 @@ function episodeRows(memory, session, serverIndex, page) {
   const server = session.servers[serverIndex];
   if (!server || server.episodes.length === 0) return [];
   const layout = layoutEpisodeButtons(server.episodes, page);
-  return layout.rows.map((row) => row.map((button) => {
-    if (Number.isInteger(button.episodeIndex)) {
-      return Markup.button.callback(
+  return layout.rows
+    .map((row) => row.flatMap((button) => {
+      if (Number.isInteger(button.episodeIndex)) {
+        if (!button.url) return [];
+        return [Markup.button.url(button.label, button.url)];
+      }
+      return [Markup.button.callback(
         button.label,
-        memory.watchCallback(session.id, serverIndex, button.episodeIndex),
-      );
-    }
-    return Markup.button.callback(
-      button.label,
-      memory.episodePageCallback(session.id, serverIndex, button.page),
-    );
-  }));
+        memory.episodePageCallback(session.id, serverIndex, button.page),
+      )];
+    }))
+    .filter((row) => row.length > 0);
 }
 
 async function present(ctx, movie, caption, rows, edit) {
@@ -279,19 +279,6 @@ async function replaceKeyboard(ctx, rows) {
   } catch (error) {
     if (!isNotModified(error)) throw error;
   }
-}
-
-async function sendWatchLink(ctx, server, episode) {
-  if (!episode?.embed || !/^https?:\/\//i.test(episode.embed)) {
-    await ctx.reply('😕 Tập này chưa có link xem.');
-    return;
-  }
-
-  const label = `▶️ Tập ${escapeHtml(episode.name)} · ${escapeHtml(server.name)}`;
-  await ctx.reply(label, {
-    parse_mode: 'HTML',
-    ...Markup.inlineKeyboard([[Markup.button.url('▶️ Xem phim', episode.embed)]]),
-  });
 }
 
 async function onCallback(ctx, api, memory) {
@@ -355,15 +342,7 @@ async function onCallback(ctx, api, memory) {
     return;
   }
 
-  if (parsed.type === 'watch') {
-    const episode = server.episodes[parsed.episode];
-    if (!episode) {
-      await ctx.answerCbQuery('Không thấy tập này. Hãy tìm lại phim.', { show_alert: true });
-      return;
-    }
-    await ctx.answerCbQuery();
-    await sendWatchLink(ctx, server, episode);
-  }
+  await ctx.answerCbQuery('Nút không còn dùng được. Hãy tìm lại phim.', { show_alert: true });
 }
 
 module.exports = {
