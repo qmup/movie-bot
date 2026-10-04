@@ -1,9 +1,10 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const token = (process.env.BOT_TOKEN || '').trim();
 if (!token) {
   console.error(
-    'Thiếu BOT_TOKEN. Sao chép .env.example thành .env và điền token mới từ BotFather.',
+    'Thiếu BOT_TOKEN. Sao chép .env.example thành .env cạnh index.js và điền token mới từ BotFather.',
   );
   process.exit(1);
 }
