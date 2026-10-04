@@ -86,9 +86,14 @@ function taggedLine(tag, text) {
   return `${open}${truncateText(safe, room)}${close}`;
 }
 
-function fieldLine(label, value) {
+function fieldLine(icon, label, value) {
   if (!hasValue(value)) return '';
-  return `${escapeHtml(label)}: ${escapeHtml(value)}`;
+  const prefix = icon ? `${icon} ` : '';
+  return `${prefix}${escapeHtml(label)}: ${escapeHtml(value)}`;
+}
+
+function titleLine(name) {
+  return `🎬 ${taggedLine('b', hasValue(name) ? name : 'Chưa rõ tên')}`;
 }
 
 function joinCaption(lines, description) {
@@ -123,22 +128,22 @@ function fitPlain(full, apply, render) {
 }
 
 function detailLines(movie, options, fields) {
-  const lines = [taggedLine('b', hasValue(movie?.name) ? movie.name : 'Chưa rõ tên')];
+  const lines = [titleLine(movie?.name)];
   if (hasValue(movie?.original_name)) {
     lines.push(taggedLine('i', movie.original_name));
   }
   lines.push(
-    fieldLine('Năm', movie?.year),
-    fieldLine('Thời lượng', movie?.time),
-    fieldLine('Chất lượng', movie?.quality),
-    fieldLine('Ngôn ngữ', movie?.language),
-    fieldLine('Trạng thái', movie?.current_episode),
-    fieldLine('Đạo diễn', fields.director),
-    fieldLine('Diễn viên', fields.casts),
-    fieldLine('Định dạng', categoryNames(movie, 'Định dạng')),
-    fieldLine('Thể loại', categoryNames(movie, 'Thể loại')),
-    fieldLine('Quốc gia', categoryNames(movie, 'Quốc gia')),
-    fieldLine('Server', options.serverName),
+    fieldLine('📅', 'Năm', movie?.year),
+    fieldLine('⏱', 'Thời lượng', movie?.time),
+    fieldLine('🎞', 'Chất lượng', movie?.quality),
+    fieldLine('🗣', 'Ngôn ngữ', movie?.language),
+    fieldLine('📺', 'Trạng thái', movie?.current_episode),
+    fieldLine('🎥', 'Đạo diễn', fields.director),
+    fieldLine('🎭', 'Diễn viên', fields.casts),
+    fieldLine('📁', 'Định dạng', categoryNames(movie, 'Định dạng')),
+    fieldLine('🏷', 'Thể loại', categoryNames(movie, 'Thể loại')),
+    fieldLine('🌍', 'Quốc gia', categoryNames(movie, 'Quốc gia')),
+    fieldLine('📡', 'Server', options.serverName),
   );
   return joinCaption(lines, fields.description ? escapeHtml(fields.description) : '');
 }
@@ -168,16 +173,16 @@ function buildDetailCaption(movie, options = {}) {
 }
 
 function buildSearchCaption(item) {
-  const lines = [taggedLine('b', hasValue(item?.name) ? item.name : 'Chưa rõ tên')];
+  const lines = [titleLine(item?.name)];
   if (hasValue(item?.original_name)) {
     lines.push(taggedLine('i', item.original_name));
   }
   lines.push(
-    fieldLine('Năm', item?.year),
-    fieldLine('Thời lượng', item?.time),
-    fieldLine('Chất lượng', item?.quality),
-    fieldLine('Ngôn ngữ', item?.language),
-    fieldLine('Tập hiện tại', item?.current_episode),
+    fieldLine('📅', 'Năm', item?.year),
+    fieldLine('⏱', 'Thời lượng', item?.time),
+    fieldLine('🎞', 'Chất lượng', item?.quality),
+    fieldLine('🗣', 'Ngôn ngữ', item?.language),
+    fieldLine('📺', 'Tập hiện tại', item?.current_episode),
   );
   const caption = lines.filter(Boolean).join('\n');
   return caption.length <= PHOTO_CAPTION_LIMIT

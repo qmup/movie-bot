@@ -10,7 +10,7 @@ const {
   sendCardsInOrder,
 } = require('./cards');
 
-const START_HINT = 'Gõ tên phim để tìm. Ví dụ: Hoa Thiên Cốt';
+const START_HINT = '🎬 Gõ tên phim để tìm. Ví dụ: Hoa Thiên Cốt';
 
 function createBot(token, options = {}) {
   const bot = new Telegraf(token);
@@ -82,7 +82,7 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
     for (const variant of variants) {
       data = await api.searchFilms(variant, page);
       if (data?.status && data.status !== 'success') {
-        await ctx.reply('Nguồn phim trả về lỗi. Thử lại sau.');
+        await ctx.reply('⚠️ Nguồn phim trả về lỗi. Thử lại sau.');
         return;
       }
       const found = Array.isArray(data?.items) ? data.items : [];
@@ -93,7 +93,7 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
     }
   } catch (error) {
     console.error('Lỗi tìm phim:', error.message);
-    await ctx.reply('Không tìm được phim lúc này. Thử lại sau.');
+    await ctx.reply('⚠️ Không tìm được phim lúc này. Thử lại sau.');
     return;
   }
 
@@ -104,7 +104,7 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
   const totalItems = Number(paginate.total_items);
 
   if (items.length === 0) {
-    await ctx.reply(`Không tìm thấy phim cho “${query}”.`);
+    await ctx.reply(`😕 Không tìm thấy phim cho “${query}”.`);
     return;
   }
 
@@ -121,7 +121,7 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
 
   await sendCardsInOrder(imagePromises, async (index, image) => {
     const rows = [[
-      Markup.button.callback('Xem chi tiết', memory.detailCallback(sessionId, index)),
+      Markup.button.callback('ℹ️ Xem chi tiết', memory.detailCallback(sessionId, index)),
     ]];
     if (totalPage > 1 && index === lastIndex) {
       rows.push(searchNavRow(memory, sessionId, currentPage, totalPage));
@@ -134,17 +134,17 @@ function searchNavRow(memory, sessionId, page, totalPage) {
   const nav = [];
   if (page > 1) {
     nav.push(Markup.button.callback(
-      '« Trang trước',
+      '◀️ Trang trước',
       memory.searchPageCallback(sessionId, page - 1),
     ));
   }
   nav.push(Markup.button.callback(
-    `Trang ${page}/${totalPage}`,
+    `📄 ${page}/${totalPage}`,
     memory.searchPageCallback(sessionId, page),
   ));
   if (page < totalPage) {
     nav.push(Markup.button.callback(
-      'Trang sau »',
+      'Trang sau ▶️',
       memory.searchPageCallback(sessionId, page + 1),
     ));
   }
@@ -157,13 +157,13 @@ async function sendDetail(ctx, api, memory, slug) {
     data = await api.getFilm(slug);
   } catch (error) {
     console.error('Lỗi chi tiết phim:', error.message);
-    await ctx.reply('Không mở được phim này. Thử lại sau.');
+    await ctx.reply('⚠️ Không mở được phim này. Thử lại sau.');
     return;
   }
 
   const movie = data?.movie;
   if (!movie || (data?.status && data.status !== 'success')) {
-    await ctx.reply('Không thấy dữ liệu phim.');
+    await ctx.reply('😕 Không thấy dữ liệu phim.');
     return;
   }
 
@@ -195,7 +195,7 @@ async function showFilm(ctx, memory, session, { serverIndex = null, page = 0, ed
 
   await present(ctx, session.movie, caption, rows, edit);
   if (servers.length === 0 && !edit) {
-    await ctx.reply('Phim chưa có tập để xem.');
+    await ctx.reply('😕 Phim chưa có tập để xem.');
   }
 }
 
@@ -283,14 +283,14 @@ async function replaceKeyboard(ctx, rows) {
 
 async function sendWatchLink(ctx, server, episode) {
   if (!episode?.embed || !/^https?:\/\//i.test(episode.embed)) {
-    await ctx.reply('Tập này chưa có link xem.');
+    await ctx.reply('😕 Tập này chưa có link xem.');
     return;
   }
 
-  const label = `Tập ${escapeHtml(episode.name)} · ${escapeHtml(server.name)}`;
+  const label = `▶️ Tập ${escapeHtml(episode.name)} · ${escapeHtml(server.name)}`;
   await ctx.reply(label, {
     parse_mode: 'HTML',
-    ...Markup.inlineKeyboard([[Markup.button.url('Xem phim', episode.embed)]]),
+    ...Markup.inlineKeyboard([[Markup.button.url('▶️ Xem phim', episode.embed)]]),
   });
 }
 
@@ -342,7 +342,7 @@ async function onCallback(ctx, api, memory) {
   if (parsed.type === 'server' || parsed.type === 'episodes') {
     if (!server.episodes.length) {
       await ctx.answerCbQuery();
-      await ctx.reply(`Server ${server.name} chưa có tập.`);
+      await ctx.reply(`😕 Server ${server.name} chưa có tập.`);
       return;
     }
     await ctx.answerCbQuery();
