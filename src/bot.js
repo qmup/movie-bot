@@ -3,6 +3,7 @@ const { searchFilms, getFilm } = require('./nguonc');
 const { buildSearchCaption, buildDetailCaption, escapeHtml } = require('./format');
 const sessions = require('./session');
 const { layoutEpisodeButtons } = require('./episodes');
+const { downloadImage } = require('./images');
 
 const START_HINT = 'Gõ tên phim để tìm. Ví dụ: Hoa Thiên Cốt';
 
@@ -239,7 +240,8 @@ async function sendCard(ctx, item, caption, rows) {
   );
   for (const url of urls) {
     try {
-      await ctx.replyWithPhoto(url, extra);
+      const image = await downloadImage(url);
+      await ctx.replyWithPhoto({ source: image.source, filename: image.filename }, extra);
       return;
     } catch (error) {
       console.error('Không gửi được ảnh:', error.message);
