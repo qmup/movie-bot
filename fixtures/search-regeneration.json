@@ -1,0 +1,73 @@
+{
+    "status": "success",
+    "paginate": {
+        "current_page": 1,
+        "total_page": 1,
+        "total_items": 2,
+        "items_per_page": 10
+    },
+    "items": [
+        {
+            "id": "eyJpdiI6Ik5kYkY5ZTAzaFBvamVzRHM4UkRwNFE9PSIsInZhbHVlIjoiTkpjVHRCNHpVUjB6aWM1MnJ4SHZyUT09IiwibWFjIjoiMTJjZGFiY2M0MWY2YzI5NjYzOTMzNTdiYTMxOGEwOGY1NDczZjQ1MzFlNzU0MGRjMjEzNTE5ZmNkODkzNTNhOCJ9",
+            "name": "Chiến Binh Vũ Trụ: Tái Sinh",
+            "original_name": "Universal Soldier: Regeneration",
+            "slug": "chien-binh-vu-tru-tai-sinh",
+            "year": 2009,
+            "description": "<p>Khi bị các thế lực khủng bố đe dọa sẽ gây ra thảm họa hạt nhân, hy vọng duy nhất của thế giới phụ thuộc vào việc thiết lập lại hoạt động của Chiến binh Vũ Trụ đã bị \"vứt xó\" từ lâu Luc Deveraux. Được trang bị vũ khí tối tân và lập trình mới hoàn toàn, Deveraux đã sẵn sàng đối mặt với kẻ thù không đội trời chung của mình từ phần trước trong \"Universal Soldier\", cùng một thế hệ người máy thứ hai mang tên UniSol...</p>",
+            "total_episodes": 1,
+            "current_episode": "FULL",
+            "time": "Đang cập nhật",
+            "quality": "HD",
+            "language": "Vietsub",
+            "director": "John Hyams",
+            "casts": "Dolph Lundgren, Jean-Claude Van Damme, Andrei Arlovski",
+            "tmdb": {
+                "id": 28510,
+                "type": "movie",
+                "season": null,
+                "url": "https://www.themoviedb.org/movie/28510"
+            },
+            "imdb": {
+                "id": "tt1288403",
+                "url": "https://www.imdb.com/title/tt1288403/"
+            },
+            "thumb_url": "https://img.nguonc.com/images/img-f31970447538c5a2f99465f1c77cc7e1b8c0dac9d003faec88a09ceba55120a3.jpg",
+            "thumb_url_webp": "https://img.nguonc.com/images/img-08a8236aba87680c4d3ef26ac24a193764978182788372d4cd5cd62a4ec0e2b6.webp",
+            "poster_url": "https://img.nguonc.com/images/img-f765188a235b1fb621d23ce76a8334878f1f2394e25f8cea97604d6356f704c5.jpg",
+            "poster_url_webp": "https://img.nguonc.com/images/img-ac034c143500228756462c876222c64df66f973f0fca7edd9fabf9bd13a64cf8.webp",
+            "created": "2023-08-30T17:17:02.000000Z",
+            "modified": "2023-08-31T15:04:58.000000Z"
+        },
+        {
+            "id": "eyJpdiI6Ii9IdllmNmtMZU1uK2lwdDFrWVdpR1E9PSIsInZhbHVlIjoia1pNWFdTd3ZVRmx5ZWRJdWY0aVlxdz09IiwibWFjIjoiNzRkOTFlM2MzMzQ2Njg4OGFiZjdkNGU0NjcyMDgwMDYxZTk1MGExZGQzMzRlZDgyNGI4YjE1NTJhMjFiZmQ2YiJ9",
+            "name": "Tái Sinh (Phần 1)",
+            "original_name": "Regeneration (season 1)",
+            "slug": "tai-sinh-phan-1",
+            "year": 2024,
+            "description": "Nữ nhà báo He Shan được mời tham dự lễ tưởng niệm Fei Ke, cùng với năm người lạ khác, mỗi người đều không rõ mối liên hệ với Fei Ke. Họ nhanh chóng phát hiện ra rằng tất cả họ đều biết các phiên bản khác nhau của Fei Ke, khiến họ đặt câu hỏi anh ta thực sự là ai. Cùng nhau, họ tìm lại ký ức và dần dần khám phá ra sự thật về Phí Khắc.",
+            "total_episodes": 10,
+            "current_episode": "Hoàn tất (10/10)",
+            "time": "45 Phút/Tập",
+            "quality": "HD",
+            "language": "Vietsub",
+            "director": "Shen Ao",
+            "casts": "Chen Yu Xian, He Liao Lu Yun, Tỉnh Bách Nhiên, Peng Yang, Zhang Yi Fan, Zhou Yi Ran",
+            "tmdb": {
+                "id": 236617,
+                "type": "tv",
+                "season": 1,
+                "url": "https://www.themoviedb.org/tv/236617/season/1"
+            },
+            "imdb": {
+                "id": "tt28178829",
+                "url": "https://www.imdb.com/title/tt28178829/"
+            },
+            "thumb_url": "https://img.nguonc.com/images/img-88bf52c3132d84b74fa4e30f282e7390b7a03b6832a14f05e7cd48687e357789.jpg",
+            "thumb_url_webp": "https://img.nguonc.com/images/img-768385f367b3882cc16772ebbce090cf13cbf56621a778c3ef0096d8861f742b.webp",
+            "poster_url": "https://img.nguonc.com/images/img-a729657ef1bb4f87fa97e92686cf9ff20e0f090d24be5ae018d361c10e25ca3e.jpg",
+            "poster_url_webp": "https://img.nguonc.com/images/img-15170feb4c09891914e31970ad8c9ee495f67de681f5f4a3bb06a3a1923bcf1b.webp",
+            "created": "2024-05-06T13:47:26.000000Z",
+            "modified": "2024-05-15T14:17:31.000000Z"
+        }
+    ]
+}
