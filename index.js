@@ -2,7 +2,13 @@ require('dotenv').config();
 const { Telegraf, Markup } = require('telegraf');
 const axios = require('axios');
 
-const bot = new Telegraf('8538322153:AAHpq8JPJ0zj5sW2Bg7lg7QVXf8BDY3rxmc');
+const token = process.env.BOT_TOKEN;
+if (!token) {
+  console.error("BOT_TOKEN is missing. Set BOT_TOKEN in the environment before starting the bot.");
+  process.exit(1);
+}
+
+const bot = new Telegraf(token);
 
 // Hiển thị chi tiết phim sau khi chọn
 async function showMovieDetail(ctx, slug) {
