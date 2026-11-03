@@ -1,6 +1,6 @@
 # Bot Telegram xem phim Nguonc
 
-Bot nhận tên phim ngay trong chat, tìm trên [Nguonc](https://phim.nguonc.com), rồi gửi poster và nút mở link xem trên trình duyệt.
+Bot nhận tên phim ngay trong chat, tìm trên [Nguonc](https://phim.nguonc.com), rồi gửi poster và các nút tập mở thẳng trình phát trong Telegram (Mini App).
 
 ## Cài đặt
 
