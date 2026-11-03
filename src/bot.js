@@ -207,7 +207,10 @@ function trimServer(name) {
 function episodeRows(memory, session, serverIndex, page) {
   const server = session.servers[serverIndex];
   if (!server || server.episodes.length === 0) return [];
-  const layout = layoutEpisodeButtons(server.episodes, page);
+  // Bọc embed qua trang bounce: mở thẳng streamc từ Telegram bị Cloudflare 403 (thiếu Referer).
+  const layout = layoutEpisodeButtons(server.episodes, page, {
+    filmSlug: session.slug || session.movie?.slug,
+  });
   return layout.rows
     .map((row) => row.flatMap((button) => {
       if (Number.isInteger(button.episodeIndex)) {

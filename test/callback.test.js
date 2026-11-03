@@ -60,7 +60,8 @@ test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một
   assert.equal(recall(fresh).keyword, 'hoa');
 
   const episodes = film.movie.episodes[0].items;
-  const first = layoutEpisodeButtons(episodes, 0);
+  const filmPage = 'https://phim.nguonc.com/phim/hoa-thien-cot';
+  const first = layoutEpisodeButtons(episodes, 0, { filmSlug: 'hoa-thien-cot' });
   assert.equal(first.totalPages, 3);
   assert.equal(first.rows.length, 5);
   assert.deepEqual(
@@ -69,24 +70,38 @@ test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một
   );
   assert.equal(first.rows[0][0].label, '1');
   assert.equal(first.rows[0][0].episodeIndex, 0);
-  assert.equal(first.rows[0][0].url, episodes[0].embed);
+  assert.equal(first.rows[0][0].url, filmPage);
   assert.equal(first.rows[3][4].label, '20');
-  assert.equal(first.rows[3][4].url, episodes[19].embed);
+  assert.equal(first.rows[3][4].url, filmPage);
   assert.equal(first.rows[4].at(-1).label, 'Trang sau »');
   assert.equal('url' in first.rows[4].at(-1), false);
   assert.equal('page' in first.rows[4].at(-1), true);
 
-  const last = layoutEpisodeButtons(episodes, 2);
+  const last = layoutEpisodeButtons(episodes, 2, { filmSlug: 'hoa-thien-cot' });
   assert.equal(last.rows[0][0].episodeIndex, 40);
-  assert.equal(last.rows[0][0].url, episodes[40].embed);
+  assert.equal(last.rows[0][0].url, filmPage);
   assert.equal(last.rows[1][4].label, '50');
   assert.equal(last.rows.at(-1)[0].label, '« Trang trước');
 
-  const single = layoutEpisodeButtons([{ name: 'FULL', embed: 'https://example.test/a' }], 0);
+  const previous = process.env.WATCH_BASE_URL;
+  process.env.WATCH_BASE_URL = 'https://pages.example/watch.html';
+  try {
+    const bounced = layoutEpisodeButtons(episodes.slice(0, 1), 0, { filmSlug: 'hoa-thien-cot' });
+    assert.match(bounced.rows[0][0].url, /^https:\/\/pages\.example\/watch\.html\?h=[a-f0-9]+$/);
+  } finally {
+    if (previous === undefined) delete process.env.WATCH_BASE_URL;
+    else process.env.WATCH_BASE_URL = previous;
+  }
+
+  const single = layoutEpisodeButtons(
+    [{ name: 'FULL', embed: 'https://example.test/a' }],
+    0,
+    { filmSlug: 'full-phim' },
+  );
   assert.deepEqual(single.rows, [[{
     label: '▶️ Xem phim',
     episodeIndex: 0,
-    url: 'https://example.test/a',
+    url: 'https://phim.nguonc.com/phim/full-phim',
   }]]);
 
   const broken = layoutEpisodeButtons([
@@ -94,11 +109,11 @@ test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một
     { name: '2', embed: 'not-a-url' },
     { name: '3', embed: '' },
     { name: '4', embed: 'http://ok.test/4' },
-  ], 0);
-  assert.equal(broken.rows[0][0].url, 'https://ok.test/1');
+  ], 0, { filmSlug: 'hoa-thien-cot' });
+  assert.equal(broken.rows[0][0].url, filmPage);
   assert.equal(broken.rows[0][1].url, null);
   assert.equal(broken.rows[0][2].url, null);
-  assert.equal(broken.rows[0][3].url, 'http://ok.test/4');
+  assert.equal(broken.rows[0][3].url, filmPage);
   assert.equal(isValidEmbed('https://x'), true);
   assert.equal(isValidEmbed('ftp://x'), false);
   assert.equal(isValidEmbed(null), false);
