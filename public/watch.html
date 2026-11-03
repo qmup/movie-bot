@@ -28,9 +28,14 @@
       line-height: 1.45;
     }
     a { color: #8ec8ff; }
+    :root {
+      /* Telegram tự đặt các biến này; ở chế độ fullscreen trên điện thoại,
+         phần trên cùng bị nút đóng/menu của Telegram che. */
+      --top-inset: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+    }
     #fs {
       position: fixed;
-      top: calc(env(safe-area-inset-top, 0px) + 10px);
+      top: calc(var(--top-inset) + 10px);
       right: 10px;
       z-index: 10;
       width: 36px;
@@ -48,9 +53,10 @@
     #fs:hover, #fs:focus-visible { opacity: 1; }
     iframe {
       position: fixed;
-      inset: 0;
+      top: var(--top-inset);
+      left: 0;
       width: 100%;
-      height: 100%;
+      height: calc(100% - var(--top-inset));
       border: 0;
       background: #000;
     }
@@ -98,7 +104,7 @@
         frame.allowFullscreen = true;
         document.body.appendChild(frame);
         msg.remove();
-        addFullscreenToggle(tg);
+        setupFullscreen(tg);
         return;
       }
 
@@ -109,9 +115,20 @@
 
     // Telegram Desktop không cho iframe dùng Fullscreen API của trình duyệt,
     // nên phóng cả cửa sổ Mini App bằng API của Telegram (Bot API 8.0+).
-    function addFullscreenToggle(tg) {
+    // Điện thoại vẫn dùng được nút fullscreen của player (xoay ngang).
+    function setupFullscreen(tg) {
+      var mobile = ['android', 'android_x', 'ios'].indexOf(tg.platform) !== -1;
+
+      if (mobile && typeof tg.disableVerticalSwipes === 'function' && tg.isVersionAtLeast('7.7')) {
+        tg.disableVerticalSwipes();
+      }
       if (typeof tg.requestFullscreen !== 'function' || !tg.isVersionAtLeast('8.0')) return;
 
+      tg.requestFullscreen();
+      if (!mobile) addFullscreenToggle(tg);
+    }
+
+    function addFullscreenToggle(tg) {
       var button = document.createElement('button');
       button.id = 'fs';
       button.type = 'button';
@@ -128,8 +145,8 @@
         else tg.requestFullscreen();
       });
       tg.onEvent('fullscreenChanged', render);
-      tg.onEvent('fullscreenFailed', function () {
-        button.remove();
+      tg.onEvent('fullscreenFailed', function (event) {
+        if (event && event.error === 'UNSUPPORTED') button.remove();
       });
       render();
     }
