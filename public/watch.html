@@ -3,153 +3,274 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- Gửi Referer khi tải streamc — Cloudflare chặn request không có Referer. -->
+  <!-- Cloudflare của streamc chặn request không có Referer; luôn gửi origin của trang này. -->
   <meta name="referrer" content="origin">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#000000">
   <title>Xem phim</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    *, *::before, *::after { box-sizing: border-box; }
     html, body {
       margin: 0;
+      width: 100%;
       height: 100%;
+      overflow: hidden;
       background: #000;
       color: #f2f2f2;
-      font-family: "Segoe UI", Tahoma, sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
-    #msg {
+
+    #stage {
       position: fixed;
       inset: 0;
-      display: grid;
-      place-items: center;
-      padding: 1.5rem;
-      text-align: center;
-      opacity: 0.75;
-      font-size: 0.95rem;
-      line-height: 1.45;
+      background: #000;
     }
-    a { color: #8ec8ff; }
-    :root {
-      /* Telegram tự đặt các biến này; ở chế độ fullscreen trên điện thoại,
-         phần trên cùng bị nút đóng/menu của Telegram che. */
-      --top-inset: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+    /* Trong Mini App toàn màn hình (mobile), chừa vùng nút của Telegram và tai thỏ. */
+    body.tg-mobile #stage {
+      top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+      bottom: var(--tg-safe-area-inset-bottom, 0px);
+      left: var(--tg-safe-area-inset-left, 0px);
+      right: var(--tg-safe-area-inset-right, 0px);
     }
-    #fs {
-      position: fixed;
-      top: calc(var(--top-inset) + 10px);
-      right: 10px;
-      z-index: 10;
-      width: 36px;
-      height: 36px;
-      border: 0;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.55);
-      color: #fff;
-      font-size: 18px;
-      line-height: 36px;
-      cursor: pointer;
-      opacity: 0.35;
-      transition: opacity 0.2s;
-    }
-    #fs:hover, #fs:focus-visible { opacity: 1; }
-    iframe {
-      position: fixed;
-      top: var(--top-inset);
-      left: 0;
+    #stage iframe {
+      display: block;
       width: 100%;
-      height: calc(100% - var(--top-inset));
+      height: 100%;
       border: 0;
       background: #000;
     }
+
+    .panel {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 24px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .panel[hidden] { display: none; }
+    .panel p {
+      margin: 0;
+      max-width: 26rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      opacity: 0.8;
+    }
+    .cta {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 26px;
+      font: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      background: #e50914;
+      cursor: pointer;
+    }
+    .cta:hover { filter: brightness(1.1); }
+    .cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+    a { color: #8ec8ff; }
+
+    #enter-fs {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 5;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+    }
+    #enter-fs:hover, #enter-fs:focus-visible { opacity: 1; }
+    #enter-fs[hidden] { display: none; }
   </style>
 </head>
 <body>
-  <p id="msg">Đang mở trình phát…</p>
+  <div id="stage"></div>
+
+  <div id="panel" class="panel">
+    <p id="panel-text">Đang mở trình phát…</p>
+  </div>
+
+  <button id="enter-fs" type="button" title="Toàn màn hình" aria-label="Toàn màn hình" hidden>⛶</button>
+
   <script>
     (function () {
-      var msg = document.getElementById('msg');
-      var params = new URLSearchParams(window.location.search);
-      var hash = (params.get('h') || '').trim().toLowerCase();
-      var target = '';
+      var STREAMC_HOST = /(^|\.)streamc\.xyz$/i;
+      var MOBILE_PLATFORMS = { ios: true, android: true, android_x: true };
 
-      if (/^[a-f0-9]{16,64}$/.test(hash)) {
-        target = 'https://embed.streamc.xyz/embed.php?hash=' + hash;
-      } else {
-        var raw = (params.get('u') || '').trim();
-        try {
-          var url = new URL(raw);
-          if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-            throw new Error('protocol');
-          }
-          if (!/(^|\.)streamc\.xyz$/i.test(url.hostname)) {
-            throw new Error('host');
-          }
-          target = url.toString();
-        } catch (error) {
-          msg.textContent = 'Link xem không hợp lệ.';
-          return;
-        }
+      var stage = document.getElementById('stage');
+      var panel = document.getElementById('panel');
+      var panelText = document.getElementById('panel-text');
+      var enterFsButton = document.getElementById('enter-fs');
+
+      var target = resolveTarget(new URLSearchParams(window.location.search));
+      if (!target) {
+        showPanel('Link xem không hợp lệ. Hãy mở lại tập phim từ bot.');
+        return;
       }
 
       var tg = window.Telegram && window.Telegram.WebApp;
-      if (tg && tg.initData) {
-        tg.ready();
-        tg.expand();
-        if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#000000');
-        if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#000000');
+      var inTelegram = Boolean(tg && tg.initData);
 
+      if (inTelegram && MOBILE_PLATFORMS[tg.platform]) {
+        startTelegramMobile(tg);
+      } else if (inTelegram) {
+        startTelegramDesktop(tg);
+      } else {
+        startBrowser();
+      }
+
+      function resolveTarget(params) {
+        var hash = (params.get('h') || '').trim().toLowerCase();
+        if (/^[a-f0-9]{16,64}$/.test(hash)) {
+          return 'https://embed.streamc.xyz/embed.php?hash=' + hash;
+        }
+        try {
+          var url = new URL((params.get('u') || '').trim());
+          if ((url.protocol === 'https:' || url.protocol === 'http:') && STREAMC_HOST.test(url.hostname)) {
+            return url.toString();
+          }
+        } catch (error) {
+          // URL không hợp lệ
+        }
+        return null;
+      }
+
+      function mountPlayer() {
         var frame = document.createElement('iframe');
         frame.src = target;
         frame.referrerPolicy = 'origin';
         frame.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
         frame.allowFullscreen = true;
-        document.body.appendChild(frame);
-        msg.remove();
-        setupFullscreen(tg);
-        return;
+        frame.setAttribute('webkitallowfullscreen', '');
+        frame.setAttribute('mozallowfullscreen', '');
+        stage.appendChild(frame);
+        return frame;
       }
 
-      var safeHref = target.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-      msg.innerHTML = 'Nếu không tự mở, <a rel="noopener" href="' + safeHref + '">bấm vào đây</a>.';
-      window.location.replace(target);
+      function showPanel(text, actionLabel, onAction) {
+        panelText.textContent = text;
+        var old = panel.querySelector('.cta');
+        if (old) old.remove();
+        if (actionLabel) {
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'cta';
+          button.textContent = actionLabel;
+          button.addEventListener('click', onAction);
+          panel.appendChild(button);
+          button.focus({ preventScroll: true });
+        }
+        panel.hidden = false;
+      }
+
+      function hidePanel() {
+        panel.hidden = true;
+      }
+
+      function supports(version) {
+        return typeof tg.isVersionAtLeast === 'function' && tg.isVersionAtLeast(version);
+      }
+
+      // Mobile: Mini App toàn màn hình của Telegram, player phủ kín vùng an toàn.
+      function startTelegramMobile() {
+        document.body.classList.add('tg-mobile');
+        tg.ready();
+        tg.expand();
+        if (supports('6.1')) {
+          tg.setHeaderColor('#000000');
+          tg.setBackgroundColor('#000000');
+        }
+        if (supports('7.7')) tg.disableVerticalSwipes();
+        if (supports('8.0')) {
+          tg.setBottomBarColor('#000000');
+          tg.requestFullscreen();
+        }
+        mountPlayer();
+        hidePanel();
+      }
+
+      // Desktop: toàn màn hình của Mini App làm player bị giãn hình và mất thanh điều khiển,
+      // nên mở trang này trong trình duyệt mặc định, nơi Fullscreen API hoạt động đúng.
+      function startTelegramDesktop() {
+        tg.ready();
+        if (supports('6.1')) {
+          tg.setHeaderColor('#000000');
+          tg.setBackgroundColor('#000000');
+        }
+        var browserUrl = window.location.origin + window.location.pathname + window.location.search;
+
+        function openInBrowser() {
+          tg.openLink(browserUrl);
+          showPanel(
+            'Đã mở trình phát trong trình duyệt. Nếu chưa thấy, bấm nút bên dưới.',
+            'Mở lại trong trình duyệt',
+            function () { tg.openLink(browserUrl); },
+          );
+          setTimeout(function () { tg.close(); }, 1500);
+        }
+
+        showPanel(
+          'Trên máy tính, phim phát toàn màn hình trong trình duyệt để giữ đúng tỉ lệ hình và thanh điều khiển.',
+          '▶ Xem toàn màn hình',
+          openInBrowser,
+        );
+      }
+
+      // Trình duyệt: một cú bấm để vào toàn màn hình thật (cần thao tác người dùng).
+      function startBrowser() {
+        var frame = mountPlayer();
+        var root = document.documentElement;
+        var canFullscreen = Boolean(root.requestFullscreen || root.webkitRequestFullscreen);
+
+        function isFullscreen() {
+          return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        }
+
+        function enterFullscreen() {
+          var request = root.requestFullscreen || root.webkitRequestFullscreen;
+          var result = request && request.call(root);
+          if (result && typeof result.catch === 'function') result.catch(function () {});
+          hidePanel();
+          frame.focus();
+        }
+
+        function syncButton() {
+          enterFsButton.hidden = !canFullscreen || isFullscreen() || !panel.hidden;
+        }
+
+        if (!canFullscreen) {
+          hidePanel();
+          return;
+        }
+
+        enterFsButton.addEventListener('click', enterFullscreen);
+        document.addEventListener('fullscreenchange', syncButton);
+        document.addEventListener('webkitfullscreenchange', syncButton);
+
+        showPanel('', '▶ Xem toàn màn hình', function () {
+          enterFullscreen();
+          syncButton();
+        });
+        panelText.hidden = true;
+        syncButton();
+      }
     })();
-
-    // Telegram Desktop không cho iframe dùng Fullscreen API của trình duyệt,
-    // nên phóng cả cửa sổ Mini App bằng API của Telegram (Bot API 8.0+).
-    // Điện thoại vẫn dùng được nút fullscreen của player (xoay ngang).
-    function setupFullscreen(tg) {
-      var mobile = ['android', 'android_x', 'ios'].indexOf(tg.platform) !== -1;
-
-      if (mobile && typeof tg.disableVerticalSwipes === 'function' && tg.isVersionAtLeast('7.7')) {
-        tg.disableVerticalSwipes();
-      }
-      if (typeof tg.requestFullscreen !== 'function' || !tg.isVersionAtLeast('8.0')) return;
-
-      tg.requestFullscreen();
-      if (!mobile) addFullscreenToggle(tg);
-    }
-
-    function addFullscreenToggle(tg) {
-      var button = document.createElement('button');
-      button.id = 'fs';
-      button.type = 'button';
-      button.title = 'Toàn màn hình';
-      document.body.appendChild(button);
-
-      function render() {
-        button.textContent = tg.isFullscreen ? '✕' : '⛶';
-        button.title = tg.isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình';
-      }
-
-      button.addEventListener('click', function () {
-        if (tg.isFullscreen) tg.exitFullscreen();
-        else tg.requestFullscreen();
-      });
-      tg.onEvent('fullscreenChanged', render);
-      tg.onEvent('fullscreenFailed', function (event) {
-        if (event && event.error === 'UNSUPPORTED') button.remove();
-      });
-      render();
-    }
   </script>
 </body>
 </html>
