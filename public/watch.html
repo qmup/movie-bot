@@ -2,29 +2,44 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Gửi Referer khi nhảy sang streamc — Cloudflare chặn request không có Referer. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Gửi Referer khi tải streamc — Cloudflare chặn request không có Referer. -->
   <meta name="referrer" content="origin">
   <meta name="robots" content="noindex, nofollow">
-  <title>Đang mở phim…</title>
+  <title>Xem phim</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: #121212;
+      height: 100%;
+      background: #000;
       color: #f2f2f2;
       font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+    #msg {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
       padding: 1.5rem;
       text-align: center;
+      opacity: 0.75;
+      font-size: 0.95rem;
+      line-height: 1.45;
     }
     a { color: #8ec8ff; }
-    .hint { opacity: 0.75; font-size: 0.95rem; max-width: 28rem; line-height: 1.45; }
+    iframe {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
   </style>
 </head>
 <body>
-  <p id="msg" class="hint">Đang mở trình phát…</p>
+  <p id="msg">Đang mở trình phát…</p>
   <script>
     (function () {
       var msg = document.getElementById('msg');
@@ -49,6 +64,23 @@
           msg.textContent = 'Link xem không hợp lệ.';
           return;
         }
+      }
+
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && tg.initData) {
+        tg.ready();
+        tg.expand();
+        if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#000000');
+        if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#000000');
+
+        var frame = document.createElement('iframe');
+        frame.src = target;
+        frame.referrerPolicy = 'origin';
+        frame.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+        frame.allowFullscreen = true;
+        document.body.appendChild(frame);
+        msg.remove();
+        return;
       }
 
       var safeHref = target.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');

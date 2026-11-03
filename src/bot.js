@@ -4,6 +4,7 @@ const { buildSearchCaption, buildDetailCaption } = require('./format');
 const sessions = require('./session');
 const { layoutEpisodeButtons } = require('./episodes');
 const { buildKeywordVariants } = require('./search');
+const { resolveWatchBase } = require('./watchUrl');
 const {
   resolveCardImage,
   prefetchCardImages,
@@ -215,6 +216,10 @@ function episodeRows(memory, session, serverIndex, page) {
     .map((row) => row.flatMap((button) => {
       if (Number.isInteger(button.episodeIndex)) {
         if (!button.url) return [];
+        // Nút URL luôn bị Telegram hỏi "Open this link?"; nút Web App mở thẳng trong Telegram.
+        if (isWatchPage(button.url)) {
+          return [Markup.button.webApp(button.label, button.url)];
+        }
         return [Markup.button.url(button.label, button.url)];
       }
       return [Markup.button.callback(
@@ -223,6 +228,11 @@ function episodeRows(memory, session, serverIndex, page) {
       )];
     }))
     .filter((row) => row.length > 0);
+}
+
+function isWatchPage(url) {
+  const base = resolveWatchBase();
+  return Boolean(base) && base.startsWith('https://') && url.startsWith(`${base}?`);
 }
 
 async function present(ctx, movie, caption, rows, edit) {
