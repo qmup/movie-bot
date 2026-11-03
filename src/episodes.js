@@ -1,3 +1,5 @@
+const { buildWatchUrl } = require('./watchUrl');
+
 const EPISODES_PER_PAGE = 20;
 const EPISODES_PER_ROW = 5;
 
@@ -10,9 +12,10 @@ function isValidEmbed(embed) {
   return typeof embed === 'string' && /^https?:\/\//i.test(embed.trim());
 }
 
-function episodeCell(episode, episodeIndex, { single = false } = {}) {
+function episodeCell(episode, episodeIndex, { single = false, filmSlug } = {}) {
   const embed = episode?.embed;
-  const url = isValidEmbed(embed) ? embed.trim() : null;
+  const raw = isValidEmbed(embed) ? embed.trim() : null;
+  const url = raw ? buildWatchUrl(raw, { filmSlug }) : null;
   return {
     label: single ? '▶️ Xem phim' : trimLabel(episode?.name || String(episodeIndex + 1)),
     episodeIndex,
@@ -20,13 +23,14 @@ function episodeCell(episode, episodeIndex, { single = false } = {}) {
   };
 }
 
-function layoutEpisodeButtons(episodes, page) {
+function layoutEpisodeButtons(episodes, page, options = {}) {
   const list = episodes || [];
+  const cellOptions = { filmSlug: options.filmSlug };
   if (list.length === 1) {
     return {
       page: 0,
       totalPages: 1,
-      rows: [[episodeCell(list[0], 0, { single: true })]],
+      rows: [[episodeCell(list[0], 0, { ...cellOptions, single: true })]],
     };
   }
 
@@ -39,7 +43,7 @@ function layoutEpisodeButtons(episodes, page) {
   for (let i = 0; i < slice.length; i += EPISODES_PER_ROW) {
     rows.push(
       slice.slice(i, i + EPISODES_PER_ROW).map((episode, offset) => (
-        episodeCell(episode, start + i + offset)
+        episodeCell(episode, start + i + offset, cellOptions)
       )),
     );
   }

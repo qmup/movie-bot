@@ -32,6 +32,10 @@ BOT_TOKEN=
 
 File `.env` không được commit.
 
+### Vì sao không gửi thẳng link `embed.streamc.xyz`?
+
+Cloudflare của streamc chặn request **không có header `Referer`**. Trên trang Nguonc, player nằm trong iframe nên có Referer và trả 200. Nút URL trên Telegram mở tab mới (không Referer) nên bị **403**. Bot bọc link qua `public/watch.html` (redirect kèm Referer). Có thể tự host file đó và set `WATCH_BASE_URL` trong `.env`.
+
 ## Chạy
 
 ```bash
