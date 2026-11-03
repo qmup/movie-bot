@@ -3,7 +3,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  DEFAULT_WATCH_BASE,
   extractStreamcHash,
   filmPageUrl,
   buildWatchUrl,
@@ -21,7 +20,7 @@ test('extractStreamcHash đọc hash từ URL embed', () => {
   assert.equal(extractStreamcHash(''), null);
 });
 
-test('buildWatchUrl bọc streamc qua trang bounce để có Referer', () => {
+test('buildWatchUrl bọc streamc qua trang bounce khi có WATCH_BASE_URL', () => {
   const url = buildWatchUrl(EMBED, { baseUrl: 'https://example.test/watch.html' });
   assert.equal(
     url,
@@ -29,21 +28,22 @@ test('buildWatchUrl bọc streamc qua trang bounce để có Referer', () => {
   );
 });
 
-test('buildWatchUrl mặc định dùng jsDelivr public/watch.html', () => {
+test('buildWatchUrl mặc định dùng trang phim Nguonc (tránh 403 thiếu Referer)', () => {
   const previous = process.env.WATCH_BASE_URL;
   delete process.env.WATCH_BASE_URL;
   try {
     assert.equal(
-      buildWatchUrl(EMBED),
-      `${DEFAULT_WATCH_BASE}?h=7eeff26d5bbd97df157b7aee1b6425e2`,
+      buildWatchUrl(EMBED, { filmSlug: 'loki-than-lua-loc-phan-2' }),
+      'https://phim.nguonc.com/phim/loki-than-lua-loc-phan-2',
     );
+    assert.equal(buildWatchUrl(EMBED), null);
   } finally {
     if (previous === undefined) delete process.env.WATCH_BASE_URL;
     else process.env.WATCH_BASE_URL = previous;
   }
 });
 
-test('buildWatchUrl fallback sang trang phim Nguonc khi không phải streamc', () => {
+test('filmPageUrl và fallback non-streamc', () => {
   assert.equal(
     buildWatchUrl('https://other.cdn/play/1', {
       baseUrl: 'https://example.test/watch.html',

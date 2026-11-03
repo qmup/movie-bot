@@ -2,14 +2,6 @@
 
 const NGUONC_SITE = 'https://phim.nguonc.com';
 
-/**
- * Trang trung gian mặc định (jsDelivr phục vụ public/watch.html trên main).
- * Cloudflare của streamc.xyz trả 403 khi mở embed không có header Referer
- * (đúng hành vi khi bấm URL button trên Telegram). Trang này redirect kèm Referer.
- */
-const DEFAULT_WATCH_BASE =
-  'https://cdn.jsdelivr.net/gh/qmup/movie-bot@main/public/watch.html';
-
 const STREAMC_HASH =
   /^https?:\/\/(?:embed\.)?streamc\.xyz\/embed\.php\?hash=([a-f0-9]{16,64})(?:&.*)?$/i;
 
@@ -18,8 +10,7 @@ function trimBase(value) {
 }
 
 function resolveWatchBase(baseUrl) {
-  const fromEnv = trimBase(baseUrl ?? process.env.WATCH_BASE_URL);
-  return fromEnv || DEFAULT_WATCH_BASE;
+  return trimBase(baseUrl ?? process.env.WATCH_BASE_URL);
 }
 
 function extractStreamcHash(embed) {
@@ -36,7 +27,12 @@ function filmPageUrl(filmSlug) {
 
 /**
  * Đổi embed thô thành URL an toàn để mở từ Telegram.
- * Ưu tiên trang bounce (có Referer) → trang phim Nguonc → embed gốc.
+ *
+ * Cloudflare của streamc.xyz trả 403 khi request không có header Referer
+ * (đúng hành vi nút URL trên Telegram). Không mở thẳng embed.
+ *
+ * - Nếu WATCH_BASE_URL trỏ tới bản public/watch.html tự host → bounce theo hash.
+ * - Không thì dùng trang phim Nguonc (iframe hợp lệ, có Referer).
  */
 function buildWatchUrl(embed, options = {}) {
   const raw = typeof embed === 'string' ? embed.trim() : '';
@@ -44,7 +40,7 @@ function buildWatchUrl(embed, options = {}) {
 
   const base = resolveWatchBase(options.baseUrl);
   const hash = extractStreamcHash(raw);
-  if (hash && base) {
+  if (base && hash) {
     return `${base}?h=${encodeURIComponent(hash)}`;
   }
 
@@ -62,12 +58,12 @@ function buildWatchUrl(embed, options = {}) {
   const site = filmPageUrl(options.filmSlug);
   if (site) return site;
 
-  return raw;
+  // Không có slug và không có bounce: tránh trả embed thô (Telegram → 403).
+  return null;
 }
 
 module.exports = {
   NGUONC_SITE,
-  DEFAULT_WATCH_BASE,
   extractStreamcHash,
   filmPageUrl,
   buildWatchUrl,
