@@ -205,29 +205,40 @@ function trimServer(name) {
   return value.length <= 32 ? value : `${value.slice(0, 31)}…`;
 }
 
-function episodeRows(memory, session, serverIndex, page) {
+function episodeRows(memory, session, serverIndex, page, { browser = false } = {}) {
   const server = session.servers[serverIndex];
   if (!server || server.episodes.length === 0) return [];
   // Bọc embed qua trang bounce: mở thẳng streamc từ Telegram bị Cloudflare 403 (thiếu Referer).
   const layout = layoutEpisodeButtons(server.episodes, page, {
     filmSlug: session.slug || session.movie?.slug,
   });
-  return layout.rows
+  let usesWatchPage = false;
+  const rows = layout.rows
     .map((row) => row.flatMap((button) => {
       if (Number.isInteger(button.episodeIndex)) {
         if (!button.url) return [];
         // Nút URL luôn bị Telegram hỏi "Open this link?"; nút Web App mở thẳng trong Telegram.
         if (isWatchPage(button.url)) {
-          return [Markup.button.webApp(button.label, button.url)];
+          usesWatchPage = true;
+          if (!browser) return [Markup.button.webApp(button.label, button.url)];
         }
         return [Markup.button.url(button.label, button.url)];
       }
       return [Markup.button.callback(
         button.label,
-        memory.episodePageCallback(session.id, serverIndex, button.page),
+        memory.episodePageCallback(session.id, serverIndex, button.page, browser),
       )];
     }))
     .filter((row) => row.length > 0);
+
+  // Mini App trên desktop không có toàn màn hình thật; cho phép đổi sang mở bằng trình duyệt.
+  if (usesWatchPage) {
+    rows.push([Markup.button.callback(
+      browser ? '📱 Mở trong Telegram' : '🌐 Mở trong trình duyệt',
+      memory.episodePageCallback(session.id, serverIndex, layout.page, !browser),
+    )]);
+  }
+  return rows;
 }
 
 function isWatchPage(url) {
@@ -348,7 +359,9 @@ async function onCallback(ctx, api, memory) {
     await ctx.answerCbQuery();
     const page = parsed.type === 'episodes' ? parsed.page : 0;
     if (parsed.type === 'episodes') {
-      await replaceKeyboard(ctx, episodeRows(memory, session, parsed.server, page));
+      await replaceKeyboard(ctx, episodeRows(memory, session, parsed.server, page, {
+        browser: parsed.browser,
+      }));
       return;
     }
     await showFilm(ctx, memory, session, { serverIndex: parsed.server, page, edit: true });
