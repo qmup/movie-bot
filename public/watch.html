@@ -10,7 +10,6 @@
   <title>Xem phim</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
     html, body {
       margin: 0;
       width: 100%;
@@ -19,15 +18,13 @@
       background: #000;
       color: #f2f2f2;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent;
     }
-
     #stage {
       position: fixed;
       inset: 0;
       background: #000;
     }
-    /* Trong Mini App toàn màn hình (mobile), chừa vùng nút của Telegram và tai thỏ. */
+    /* Mini App toàn màn hình trên mobile: chừa vùng nút của Telegram và tai thỏ. */
     body.tg-mobile #stage {
       top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
       bottom: var(--tg-safe-area-inset-bottom, 0px);
@@ -39,101 +36,37 @@
       width: 100%;
       height: 100%;
       border: 0;
-      background: #000;
     }
-
-    .panel {
+    #error {
       position: fixed;
       inset: 0;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
+      display: grid;
+      place-items: center;
       padding: 24px;
       text-align: center;
-      background: rgba(0, 0, 0, 0.5);
-    }
-    .panel[hidden] { display: none; }
-    .panel p {
-      margin: 0;
-      max-width: 26rem;
-      font-size: 0.95rem;
-      line-height: 1.5;
       opacity: 0.8;
     }
-    .cta {
-      appearance: none;
-      border: 0;
-      border-radius: 999px;
-      padding: 14px 26px;
-      font: inherit;
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: #fff;
-      background: #e50914;
-      cursor: pointer;
-    }
-    .cta:hover { filter: brightness(1.1); }
-    .cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-    a { color: #8ec8ff; }
-
-    #enter-fs {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      z-index: 5;
-      width: 40px;
-      height: 40px;
-      border: 0;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      font-size: 20px;
-      cursor: pointer;
-      opacity: 0.4;
-      transition: opacity 0.2s;
-    }
-    #enter-fs:hover, #enter-fs:focus-visible { opacity: 1; }
-    #enter-fs[hidden] { display: none; }
   </style>
 </head>
 <body>
   <div id="stage"></div>
 
-  <div id="panel" class="panel">
-    <p id="panel-text">Đang mở trình phát…</p>
-  </div>
-
-  <button id="enter-fs" type="button" title="Toàn màn hình" aria-label="Toàn màn hình" hidden>⛶</button>
-
   <script>
     (function () {
-      var STREAMC_HOST = /(^|\.)streamc\.xyz$/i;
       var MOBILE_PLATFORMS = { ios: true, android: true, android_x: true };
-
-      var stage = document.getElementById('stage');
-      var panel = document.getElementById('panel');
-      var panelText = document.getElementById('panel-text');
-      var enterFsButton = document.getElementById('enter-fs');
 
       var target = resolveTarget(new URLSearchParams(window.location.search));
       if (!target) {
-        showPanel('Link xem không hợp lệ. Hãy mở lại tập phim từ bot.');
+        var error = document.createElement('p');
+        error.id = 'error';
+        error.textContent = 'Link xem không hợp lệ. Hãy mở lại tập phim từ bot.';
+        document.body.appendChild(error);
         return;
       }
 
       var tg = window.Telegram && window.Telegram.WebApp;
-      var inTelegram = Boolean(tg && tg.initData);
-
-      if (inTelegram && MOBILE_PLATFORMS[tg.platform]) {
-        startTelegramMobile(tg);
-      } else if (inTelegram) {
-        startTelegramDesktop(tg);
-      } else {
-        startBrowser();
-      }
+      if (tg && tg.initData) setUpTelegram(tg);
+      mountPlayer(target);
 
       function resolveTarget(params) {
         var hash = (params.get('h') || '').trim().toLowerCase();
@@ -142,7 +75,7 @@
         }
         try {
           var url = new URL((params.get('u') || '').trim());
-          if ((url.protocol === 'https:' || url.protocol === 'http:') && STREAMC_HOST.test(url.hostname)) {
+          if ((url.protocol === 'https:' || url.protocol === 'http:') && /(^|\.)streamc\.xyz$/i.test(url.hostname)) {
             return url.toString();
           }
         } catch (error) {
@@ -151,104 +84,57 @@
         return null;
       }
 
-      function mountPlayer() {
+      function mountPlayer(src) {
         var frame = document.createElement('iframe');
-        frame.src = target;
+        frame.src = src;
         frame.referrerPolicy = 'origin';
         frame.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
         frame.allowFullscreen = true;
         frame.setAttribute('webkitallowfullscreen', '');
-        frame.setAttribute('mozallowfullscreen', '');
-        stage.appendChild(frame);
-        return frame;
+        document.getElementById('stage').appendChild(frame);
       }
 
-      function showPanel(text, actionLabel, onAction) {
-        panelText.textContent = text;
-        var old = panel.querySelector('.cta');
-        if (old) old.remove();
-        if (actionLabel) {
-          var button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'cta';
-          button.textContent = actionLabel;
-          button.addEventListener('click', onAction);
-          panel.appendChild(button);
-          button.focus({ preventScroll: true });
-        }
-        panel.hidden = false;
-      }
+      function setUpTelegram(app) {
+        var mobile = Boolean(MOBILE_PLATFORMS[app.platform]);
+        var canFullscreen = typeof app.isVersionAtLeast === 'function' && app.isVersionAtLeast('8.0');
 
-      function hidePanel() {
-        panel.hidden = true;
-      }
-
-      function supports(version) {
-        return typeof tg.isVersionAtLeast === 'function' && tg.isVersionAtLeast(version);
-      }
-
-      // Mobile: Mini App toàn màn hình của Telegram, player phủ kín vùng an toàn.
-      function startTelegramMobile() {
-        document.body.classList.add('tg-mobile');
-        tg.ready();
-        tg.expand();
-        if (supports('6.1')) {
-          tg.setHeaderColor('#000000');
-          tg.setBackgroundColor('#000000');
-        }
-        if (supports('7.7')) tg.disableVerticalSwipes();
-        if (supports('8.0')) {
-          tg.setBottomBarColor('#000000');
-          tg.requestFullscreen();
-        }
-        mountPlayer();
-        hidePanel();
-      }
-
-      // Desktop: phát ngay trong cửa sổ Mini App. Không dùng requestFullscreen của Telegram
-      // vì nó làm player bị giãn hình và mất thanh điều khiển; toàn màn hình thật thì mở
-      // trang này trong trình duyệt, nơi nút toàn màn hình của player hoạt động đúng.
-      function startTelegramDesktop() {
-        tg.ready();
-        tg.expand();
-        if (supports('6.1')) {
-          tg.setHeaderColor('#000000');
-          tg.setBackgroundColor('#000000');
-        }
-        var frame = mountPlayer();
-        hidePanel();
-
-        var browserUrl = window.location.origin + window.location.pathname + window.location.search;
-        enterFsButton.title = 'Toàn màn hình (mở trong trình duyệt)';
-        enterFsButton.setAttribute('aria-label', enterFsButton.title);
-        enterFsButton.addEventListener('click', function () {
-          tg.openLink(browserUrl);
-          frame.remove();
-          setTimeout(function () { tg.close(); }, 800);
-        });
-        enterFsButton.hidden = false;
-      }
-
-      // Trình duyệt: hiện player ngay; nút toàn màn hình của player dùng được bình thường.
-      function startBrowser() {
-        mountPlayer();
-        hidePanel();
-
-        var root = document.documentElement;
-        var request = root.requestFullscreen || root.webkitRequestFullscreen;
-        if (!request) return;
-
-        function syncButton() {
-          enterFsButton.hidden = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        app.ready();
+        app.expand();
+        if (app.isVersionAtLeast('6.1')) {
+          app.setHeaderColor('#000000');
+          app.setBackgroundColor('#000000');
         }
 
-        enterFsButton.addEventListener('click', function () {
-          var result = request.call(root);
+        if (mobile) {
+          document.body.classList.add('tg-mobile');
+          if (app.isVersionAtLeast('7.7')) app.disableVerticalSwipes();
+          if (canFullscreen) app.requestFullscreen();
+          return;
+        }
+
+        if (!canFullscreen) return;
+
+        // Desktop: Fullscreen API của player chỉ phủ kín cửa sổ Mini App,
+        // nên phóng/thu cửa sổ Mini App theo trạng thái toàn màn hình của player.
+        function playerIsFullscreen() {
+          return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        }
+
+        function onPlayerFullscreenChange() {
+          if (playerIsFullscreen() && !app.isFullscreen) app.requestFullscreen();
+          else if (!playerIsFullscreen() && app.isFullscreen) app.exitFullscreen();
+        }
+
+        document.addEventListener('fullscreenchange', onPlayerFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onPlayerFullscreenChange);
+
+        // Thoát bằng Esc/nút của Telegram thì cũng đưa player ra khỏi toàn màn hình.
+        app.onEvent('fullscreenChanged', function () {
+          if (app.isFullscreen || !playerIsFullscreen()) return;
+          var exit = document.exitFullscreen || document.webkitExitFullscreen;
+          var result = exit && exit.call(document);
           if (result && typeof result.catch === 'function') result.catch(function () {});
         });
-        document.addEventListener('fullscreenchange', syncButton);
-        document.addEventListener('webkitfullscreenchange', syncButton);
-        syncButton();
       }
     })();
   </script>
