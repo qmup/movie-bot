@@ -49,11 +49,6 @@ test('callback_data chỉ là id phiên và chỉ số, không quá 64 byte', ()
   assert.equal(parseCallback(`w:${id}:0:0`), null);
   assert.equal(parseCallback(`${'x'.repeat(65)}`), null);
   assert.equal(episodePageCallback(id, 0, 2), `e:${id}:0:2`);
-  assert.equal(episodePageCallback(id, 0, 2, true), `e:${id}:0:2:1`);
-  assertShort(episodePageCallback(id, 9, 99, true));
-  assert.equal(parseCallback(`e:${id}:0:2`).browser, false);
-  assert.equal(parseCallback(`e:${id}:0:2:1`).browser, true);
-  assert.equal(parseCallback(`e:${id}:0:2:7`), null);
 });
 
 test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một hàng, 20 tập một trang', () => {

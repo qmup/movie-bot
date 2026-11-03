@@ -97,8 +97,8 @@ function serverCallback(id, serverIndex) {
   return pack(['s', id, serverIndex]);
 }
 
-function episodePageCallback(id, serverIndex, page, browser = false) {
-  return pack(browser ? ['e', id, serverIndex, page, 1] : ['e', id, serverIndex, page]);
+function episodePageCallback(id, serverIndex, page) {
+  return pack(['e', id, serverIndex, page]);
 }
 
 function parseCallback(data) {
@@ -123,13 +123,8 @@ function parseCallback(data) {
       if (parts.length !== 3) return null;
       return { type: 'server', id, server: nums[0] };
     case 'e':
-      if (parts.length === 4) {
-        return { type: 'episodes', id, server: nums[0], page: nums[1], browser: false };
-      }
-      if (parts.length === 5 && nums[2] === 1) {
-        return { type: 'episodes', id, server: nums[0], page: nums[1], browser: true };
-      }
-      return null;
+      if (parts.length !== 4) return null;
+      return { type: 'episodes', id, server: nums[0], page: nums[1] };
     default:
       return null;
   }
