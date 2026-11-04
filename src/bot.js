@@ -2,7 +2,7 @@ const { Telegraf, Markup } = require('telegraf');
 const { searchFilms, getFilm } = require('./nguonc');
 const { buildSearchCaption, buildDetailCaption } = require('./format');
 const sessions = require('./session');
-const { layoutEpisodeButtons } = require('./episodes');
+const { layoutEpisodeButtons, layoutEpisodeRanges } = require('./episodes');
 const { buildKeywordVariants } = require('./search');
 const { resolveWatchBase } = require('./watchUrl');
 const {
@@ -212,7 +212,18 @@ function episodeRows(memory, session, serverIndex, page) {
   const layout = layoutEpisodeButtons(server.episodes, page, {
     filmSlug: session.slug || session.movie?.slug,
   });
-  return layout.rows
+  return keyboardRows(memory, session, serverIndex, layout.rows);
+}
+
+function episodeRangeRows(memory, session, serverIndex, page) {
+  const server = session.servers[serverIndex];
+  if (!server || server.episodes.length === 0) return [];
+  const layout = layoutEpisodeRanges(server.episodes, page);
+  return keyboardRows(memory, session, serverIndex, layout.rows);
+}
+
+function keyboardRows(memory, session, serverIndex, rows) {
+  return rows
     .map((row) => row.flatMap((button) => {
       if (Number.isInteger(button.episodeIndex)) {
         if (!button.url) return [];
@@ -221,6 +232,12 @@ function episodeRows(memory, session, serverIndex, page) {
           return [Markup.button.webApp(button.label, button.url)];
         }
         return [Markup.button.url(button.label, button.url)];
+      }
+      if (button.ranges) {
+        return [Markup.button.callback(
+          button.label,
+          memory.episodeRangesCallback(session.id, serverIndex, button.page),
+        )];
       }
       return [Markup.button.callback(
         button.label,
@@ -339,14 +356,18 @@ async function onCallback(ctx, api, memory) {
     return;
   }
 
-  if (parsed.type === 'server' || parsed.type === 'episodes') {
+  if (parsed.type === 'server' || parsed.type === 'episodes' || parsed.type === 'ranges') {
     if (!server.episodes.length) {
       await ctx.answerCbQuery();
       await ctx.reply(`😕 Server ${server.name} chưa có tập.`);
       return;
     }
     await ctx.answerCbQuery();
-    const page = parsed.type === 'episodes' ? parsed.page : 0;
+    const page = parsed.type === 'server' ? 0 : parsed.page;
+    if (parsed.type === 'ranges') {
+      await replaceKeyboard(ctx, episodeRangeRows(memory, session, parsed.server, page));
+      return;
+    }
     if (parsed.type === 'episodes') {
       await replaceKeyboard(ctx, episodeRows(memory, session, parsed.server, page));
       return;
