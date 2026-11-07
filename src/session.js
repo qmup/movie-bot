@@ -4,16 +4,40 @@ const TTL_MS = 2 * 60 * 60 * 1000;
 const CALLBACK_MAX_BYTES = 64;
 const EXPIRED_MESSAGE = 'Phiên đã hết hạn. Hãy tìm lại phim.';
 
-const store = new Map();
-
-function prune(now = Date.now()) {
-  for (const [id, row] of store) {
-    if (now - row.createdAt >= TTL_MS) store.delete(id);
-  }
+function memoryStore() {
+  const rows = new Map();
+  return {
+    async get(id) {
+      return rows.get(id);
+    },
+    async set(id, row) {
+      const now = Date.now();
+      for (const [key, value] of rows) {
+        if (now - value.createdAt >= TTL_MS) rows.delete(key);
+      }
+      rows.set(id, row);
+    },
+    async delete(id) {
+      rows.delete(id);
+    },
+  };
 }
 
-function remember(data, createdAt = Date.now()) {
-  prune();
+// Mỗi lần bấm nút trên Vercel có thể rơi vào instance khác, nên phiên phải nằm
+// trong Runtime Cache (dùng chung trong một region) thay vì RAM của tiến trình.
+function runtimeCacheStore() {
+  const { getCache } = require('@vercel/functions');
+  const cache = getCache({ namespace: 'movie-bot-session' });
+  return {
+    get: (id) => cache.get(id),
+    set: (id, row) => cache.set(id, row, { ttl: Math.ceil(TTL_MS / 1000) }),
+    delete: (id) => cache.delete(id),
+  };
+}
+
+const store = process.env.VERCEL ? runtimeCacheStore() : memoryStore();
+
+async function remember(data, createdAt = Date.now()) {
   const rest = { ...data };
   delete rest.id;
   delete rest.createdAt;
@@ -21,17 +45,17 @@ function remember(data, createdAt = Date.now()) {
   let id = '';
   do {
     id = crypto.randomBytes(4).toString('hex');
-  } while (store.has(id));
+  } while (await store.get(id));
 
-  store.set(id, { ...rest, id, createdAt });
+  await store.set(id, { ...rest, id, createdAt });
   return id;
 }
 
-function recall(id, now = Date.now()) {
-  const row = store.get(id);
+async function recall(id, now = Date.now()) {
+  const row = await store.get(id);
   if (!row) return null;
   if (now - row.createdAt >= TTL_MS) {
-    store.delete(id);
+    await store.delete(id);
     return null;
   }
   return row;

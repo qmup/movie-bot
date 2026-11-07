@@ -25,9 +25,9 @@ function assertShort(data) {
   assert.equal(data.includes('hoa-thien-cot'), false);
 }
 
-test('callback_data chỉ là id phiên và chỉ số, không quá 64 byte', () => {
-  const id = rememberFilm(film.movie);
-  const session = recall(id);
+test('callback_data chỉ là id phiên và chỉ số, không quá 64 byte', async () => {
+  const id = await rememberFilm(film.movie);
+  const session = await recall(id);
   assert.equal(session.slug, 'hoa-thien-cot');
   assert.equal(session.servers[0].episodes[0].embed.startsWith('https://'), true);
 
@@ -56,13 +56,13 @@ test('callback_data chỉ là id phiên và chỉ số, không quá 64 byte', ()
   assert.equal(episodePageCallback(id, 0, 2), `e:${id}:0:2`);
 });
 
-test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một hàng, 20 tập một trang', () => {
+test('nút hết hạn sau khoảng 2 giờ và tập được chia 5 nút một hàng, 20 tập một trang', async () => {
   const createdAt = Date.now() - TTL_MS - 1;
-  const id = remember({ type: 'film', slug: 'hoa-thien-cot', servers: [] }, createdAt);
-  assert.equal(recall(id), null);
+  const id = await remember({ type: 'film', slug: 'hoa-thien-cot', servers: [] }, createdAt);
+  assert.equal(await recall(id), null);
 
-  const fresh = remember({ type: 'search', keyword: 'hoa' }, Date.now());
-  assert.equal(recall(fresh).keyword, 'hoa');
+  const fresh = await remember({ type: 'search', keyword: 'hoa' }, Date.now());
+  assert.equal((await recall(fresh)).keyword, 'hoa');
 
   const episodes = film.movie.episodes[0].items;
   const filmPage = 'https://phim.nguonc.com/phim/hoa-thien-cot';

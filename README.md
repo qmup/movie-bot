@@ -47,3 +47,19 @@ node index.js
 Nếu thiếu `BOT_TOKEN`, tiến trình thoát và báo cách tạo file `.env`.
 
 Mở chat với bot và gõ tên phim, kể cả tin nhắn đầu tiên. Không cần `/start`. Lệnh `/start` chỉ trả một câu nhắc ngắn.
+
+`node index.js` dùng long polling, chỉ để chạy thử trên máy. Bản chính chạy trên Vercel.
+
+## Chạy trên Vercel (webhook)
+
+Telegram gửi từng update tới `api/telegram.js`. Phiên tìm kiếm (2 giờ) nằm trong Vercel Runtime Cache để nút bấm vẫn dùng được khi request rơi vào instance khác.
+
+1. Trên project Vercel, đặt `BOT_TOKEN`, `WATCH_BASE_URL` và `TELEGRAM_WEBHOOK_SECRET` (chuỗi ngẫu nhiên, ví dụ `openssl rand -hex 32`).
+2. Deploy: `vercel deploy --prod`.
+3. Đăng ký webhook với cùng các giá trị đó trong `.env`:
+
+```bash
+npm run set-webhook -- https://movie-bot-five-sigma.vercel.app
+```
+
+Request không có header `X-Telegram-Bot-Api-Secret-Token` đúng bị trả 401. Khi đã đặt webhook, Telegram từ chối long polling, nên đừng chạy `node index.js` với cùng token.

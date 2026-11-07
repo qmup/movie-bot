@@ -116,7 +116,7 @@ async function searchAndSend(ctx, api, memory, keyword, page) {
     return;
   }
 
-  const sessionId = memory.rememberSearch(usedQuery, currentPage, items);
+  const sessionId = await memory.rememberSearch(usedQuery, currentPage, items);
   const imagePromises = prefetchCardImages(items);
   const lastIndex = items.length - 1;
 
@@ -168,8 +168,8 @@ async function sendDetail(ctx, api, memory, slug) {
     return;
   }
 
-  const sessionId = memory.rememberFilm(movie);
-  const session = memory.recall(sessionId);
+  const sessionId = await memory.rememberFilm(movie);
+  const session = await memory.recall(sessionId);
   await showFilm(ctx, memory, session, { edit: false });
 }
 
@@ -318,7 +318,7 @@ async function onCallback(ctx, api, memory) {
     return;
   }
 
-  const session = memory.recall(parsed.id);
+  const session = await memory.recall(parsed.id);
   if (!session) {
     await ctx.answerCbQuery(memory.EXPIRED_MESSAGE, { show_alert: true });
     return;
