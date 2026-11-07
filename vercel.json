@@ -1,5 +1,8 @@
 {
   "regions": ["sin1"],
+  "rewrites": [
+    { "source": "/xem", "destination": "/watch.html" }
+  ],
   "functions": {
     "api/telegram.js": {
       "maxDuration": 300

@@ -36,7 +36,7 @@ File `.env` không được commit.
 
 Cloudflare của streamc chặn request **không có header `Referer`**. Trên trang Nguonc, player nằm trong iframe nên có Referer và trả 200. Nút URL trên Telegram mở tab mới (không Referer) nên bị **403**.
 
-Mặc định bot mở `https://phim.nguonc.com/phim/<slug>` thay vì embed thô. Muốn bấm tập là vào đúng tập, hãy host `public/watch.html` trên HTTPS (Content-Type `text/html`) rồi set `WATCH_BASE_URL` trong `.env`.
+Mặc định bot mở `https://phim.nguonc.com/phim/<slug>` thay vì embed thô. Muốn bấm tập là vào đúng tập, set `WATCH_BASE_URL=https://movie-bot-five-sigma.vercel.app/xem`: Vercel phục vụ `public/watch.html` ở đường dẫn `/xem` (rewrite trong `vercel.json`).
 
 ## Chạy
 
