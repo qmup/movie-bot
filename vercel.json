@@ -3,6 +3,9 @@
   "functions": {
     "api/telegram.js": {
       "maxDuration": 300
+    },
+    "api/zalo.js": {
+      "maxDuration": 120
     }
   }
 }

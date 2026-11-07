@@ -63,3 +63,30 @@ npm run set-webhook -- https://movie-bot-five-sigma.vercel.app
 ```
 
 Request không có header `X-Telegram-Bot-Api-Secret-Token` đúng bị trả 401. Khi đã đặt webhook, Telegram từ chối long polling, nên đừng chạy `node index.js` với cùng token.
+
+## Bot Zalo
+
+Cùng project Vercel, Zalo gửi tin tới `api/zalo.js`. Zalo Bot chưa có nút bấm dưới tin nhắn, nên người dùng trả lời bằng chữ:
+
+| Gõ | Bot trả lời |
+| --- | --- |
+| Tên phim | Danh sách có số thứ tự |
+| `2` | Poster, chi tiết phim số 2 và số tập |
+| `1180` hoặc `tập 1180` | Link xem tập 1180 |
+| `mới` | Link tập mới nhất |
+| `tiếp` / `trước` / `trang 3` | Đổi trang kết quả |
+| `ds` | Xem lại danh sách |
+| `server 2` | Đổi server |
+| `tìm 1917` | Tìm phim có tên là số |
+
+Bot chỉ trả lời chat riêng, bỏ qua tin trong nhóm.
+
+1. Tạo bot qua OA **Zalo Bot Manager** → **Tạo bot** (tên phải bắt đầu bằng "Bot"). Zalo gửi Bot Token qua tin nhắn.
+2. Trên project Vercel, đặt `ZALO_BOT_TOKEN` và `ZALO_WEBHOOK_SECRET` (8–256 ký tự, ví dụ `openssl rand -hex 32`), rồi deploy.
+3. Đăng ký webhook với cùng các giá trị đó trong `.env`:
+
+```bash
+npm run set-zalo-webhook -- https://movie-bot-five-sigma.vercel.app
+```
+
+Zalo gửi thử một request ngay khi đăng ký và script in ra kết quả. Request không có header `X-Bot-Api-Secret-Token` đúng bị trả 401.

@@ -71,8 +71,11 @@ function rememberSearch(keyword, page, items) {
 }
 
 function rememberFilm(movie) {
-  return remember({
-    type: 'film',
+  return remember({ type: 'film', ...filmRecord(movie) });
+}
+
+function filmRecord(movie) {
+  return {
     slug: movie.slug,
     movie: {
       name: movie.name,
@@ -97,7 +100,23 @@ function rememberFilm(movie) {
         embed: item.embed,
       })),
     })),
-  });
+  };
+}
+
+// Zalo không có callback_data nên trạng thái gắn theo cuộc trò chuyện. Khóa có tiền tố
+// "chat:" không bao giờ trùng id phiên 8 ký tự hex ở trên.
+async function saveChat(key, data, createdAt = Date.now()) {
+  await store.set(`chat:${key}`, { ...data, createdAt });
+}
+
+async function loadChat(key, now = Date.now()) {
+  const row = await store.get(`chat:${key}`);
+  if (!row) return null;
+  if (now - row.createdAt >= TTL_MS) {
+    await store.delete(`chat:${key}`);
+    return null;
+  }
+  return row;
 }
 
 function pack(parts) {
@@ -169,6 +188,9 @@ module.exports = {
   recall,
   rememberSearch,
   rememberFilm,
+  filmRecord,
+  saveChat,
+  loadChat,
   searchPageCallback,
   detailCallback,
   serverCallback,

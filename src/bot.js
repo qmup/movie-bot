@@ -3,7 +3,7 @@ const { searchFilms, getFilm } = require('./nguonc');
 const { buildSearchCaption, buildDetailCaption } = require('./format');
 const sessions = require('./session');
 const { layoutEpisodeButtons, layoutEpisodeRanges } = require('./episodes');
-const { buildKeywordVariants } = require('./search');
+const { findFilms, isSingleResult } = require('./catalog');
 const { resolveWatchBase } = require('./watchUrl');
 const {
   resolveCardImage,
@@ -69,49 +69,31 @@ async function answerOrReply(ctx, text) {
 }
 
 async function searchAndSend(ctx, api, memory, keyword, page) {
-  const query = keyword.trim().slice(0, 150);
-  if (!query) {
-    await ctx.reply(START_HINT);
-    return;
-  }
-
-  const variants = buildKeywordVariants(query);
-  let data;
-  let usedQuery = query;
-
+  let found;
   try {
-    for (const variant of variants) {
-      data = await api.searchFilms(variant, page);
-      if (data?.status && data.status !== 'success') {
-        await ctx.reply('⚠️ Nguồn phim trả về lỗi. Thử lại sau.');
-        return;
-      }
-      const found = Array.isArray(data?.items) ? data.items : [];
-      if (found.length > 0) {
-        usedQuery = variant;
-        break;
-      }
-    }
+    found = await findFilms(api.searchFilms, keyword, page);
   } catch (error) {
     console.error('Lỗi tìm phim:', error.message);
     await ctx.reply('⚠️ Không tìm được phim lúc này. Thử lại sau.');
     return;
   }
 
-  const items = Array.isArray(data?.items) ? data.items : [];
-  const paginate = data?.paginate || {};
-  const totalPage = Number(paginate.total_page) || 1;
-  const currentPage = Number(paginate.current_page) || page;
-  const totalItems = Number(paginate.total_items);
+  if (found.status === 'empty') {
+    await ctx.reply(START_HINT);
+    return;
+  }
+  if (found.status === 'error') {
+    await ctx.reply('⚠️ Nguồn phim trả về lỗi. Thử lại sau.');
+    return;
+  }
 
+  const { query, usedQuery, items, totalPage, currentPage } = found;
   if (items.length === 0) {
     await ctx.reply(`😕 Không tìm thấy phim cho “${query}”.`);
     return;
   }
 
-  const singlePage = totalPage <= 1;
-  const singleItem = items.length === 1 && (!Number.isFinite(totalItems) || totalItems <= 1);
-  if (singlePage && singleItem) {
+  if (isSingleResult(found)) {
     await sendDetail(ctx, api, memory, items[0].slug);
     return;
   }

@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node index.js",
     "test": "node --test",
-    "set-webhook": "node scripts/set-webhook.js"
+    "set-webhook": "node scripts/set-webhook.js",
+    "set-zalo-webhook": "node scripts/set-zalo-webhook.js"
   },
   "engines": {
     "node": "24.x"
