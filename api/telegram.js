@@ -1,8 +1,18 @@
+const https = require('https');
+const { waitUntil } = require('@vercel/functions');
 const { createBot } = require('../src/bot');
 
 const token = (process.env.BOT_TOKEN || '').trim();
 const secret = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-const bot = token ? createBot(token) : null;
+const bot = token
+  ? createBot(token, {
+    telegraf: {
+      // Socket keep-alive bị treo khi instance ngủ giữa hai lần gọi, sendPhoto sau đó "socket hang up".
+      telegram: { agent: new https.Agent({ keepAlive: false }) },
+      handlerTimeout: 280_000,
+    },
+  })
+  : null;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -18,11 +28,11 @@ module.exports = async (req, res) => {
     return;
   }
 
-  try {
-    await bot.handleUpdate(req.body);
-  } catch (error) {
-    console.error('Lỗi xử lý update:', error.message);
-  }
-  // Luôn trả 200 để Telegram không gửi lại cùng một update nhiều lần.
+  // Telegram gửi lại update nếu không nhận 200 trong ~60 giây, mà gửi 10 thẻ kèm ảnh có thể lâu hơn.
+  waitUntil(
+    bot.handleUpdate(req.body).catch((error) => {
+      console.error('Lỗi xử lý update:', error.message);
+    }),
+  );
   res.status(200).send('ok');
 };

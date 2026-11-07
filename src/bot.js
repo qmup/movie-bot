@@ -14,7 +14,7 @@ const {
 const START_HINT = '🎬 Gõ tên phim để tìm. Ví dụ: Hoa Thiên Cốt';
 
 function createBot(token, options = {}) {
-  const bot = new Telegraf(token);
+  const bot = new Telegraf(token, options.telegraf);
   const api = {
     searchFilms: options.searchFilms || searchFilms,
     getFilm: options.getFilm || getFilm,
