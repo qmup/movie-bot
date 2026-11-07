@@ -1,18 +1,9 @@
-const https = require('https');
 const { waitUntil } = require('@vercel/functions');
 const { createBot } = require('../src/bot');
 
 const token = (process.env.BOT_TOKEN || '').trim();
 const secret = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-const bot = token
-  ? createBot(token, {
-    telegraf: {
-      // Socket keep-alive bị treo khi instance ngủ giữa hai lần gọi, sendPhoto sau đó "socket hang up".
-      telegram: { agent: new https.Agent({ keepAlive: false }) },
-      handlerTimeout: 280_000,
-    },
-  })
-  : null;
+const bot = token ? createBot(token, { telegraf: { handlerTimeout: 280_000 } }) : null;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
